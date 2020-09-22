@@ -1,0 +1,352 @@
+' Select all records in the Employees table 
+	' and copy them into a new table, Emp Backup.
+	dbs.Execute "SELECT Employees.* INTO " _
+		& "[Emp Backup] FROM Employees;"
+		
+	' Delete the table because this is a demonstration.
+	dbs.Execute "DROP TABLE [Emp Backup];"
+
+dbs.Close
+
+' Add the Salary field to the Employees table 
+	' and make it a Currency data type.
+	dbs.Execute "ALTER TABLE Employees " _
+		& "ADD COLUMN Salary CURRENCY;"
+
+	dbs.Close
+
+Dim dbs As Database, rst As Recordset
+
+	' Modify this line to include the path to Northwind
+	' on your computer.
+	Set dbs = OpenDatabase("Northwind.mdb")
+	
+	' List the name and contact of every customer 
+	' who placed an order in the second quarter of
+	' 1995.
+	Set rst = dbs.OpenRecordset("SELECT ContactName," _
+		& " CompanyName, ContactTitle, Phone" _
+		& " FROM Customers" _
+		& " WHERE CustomerID" _
+		& " IN (SELECT CustomerID FROM Orders" _
+
+& " WHERE OrderDate Between #04/1/95#" _
+		& " And #07/1/95#);")
+	
+	' Populate the Recordset.
+	rst.MoveLast
+	
+	' Call EnumFields to print the contents of the 
+	' Recordset. Pass the Recordset object and desired
+	' field width.
+	EnumFields rst, 25
+
+	dbs.Close
+
+
+' For each title, count the number of employees 
+	' with that title. 
+	Set rst = dbs.OpenRecordset("SELECT Title, " _
+		& "Count([Title]) AS Tally " _
+		& "FROM Employees GROUP BY Title;")
+	
+	' Populate the Recordset.
+	rst.MoveLast
+	
+	
+' order.
+	Set rst = dbs.OpenRecordset("SELECT LastName, " _
+		& "FirstName FROM Employees " _
+		& "ORDER BY LastName DESC;")
+	
+	
+This example creates an index on the Customers table using the CustomerID field. No two records can have the same data in the CustomerID field, and no Null values are allowed.
+
+Sub CreateIndexX2()
+
+	Dim dbs As Database
+
+	' Modify this line to include the path to Northwind
+	' on your computer.
+	Set dbs = OpenDatabase("Northwind.mdb")
+
+	' Create a unique index, CustID, on the 
+	' CustomerID field.
+	dbs.Execute "CREATE UNIQUE INDEX CustID " _
+		& "ON Customers (CustomerID) " _
+		& "WITH DISALLOW NULL;"
+
+	dbs.Close
+
+
+
+' Join the Customers and Orders tables on the 
+	' CustomerID field. Select a list of companies 
+	' that have at least one order.
+	Set rst = dbs.OpenRecordset("SELECT DISTINCTROW " _
+		& "CompanyName FROM Customers " _
+		& "INNER JOIN Orders " _
+		& "ON Customers.CustomerID = " _
+
+& "Orders.CustomerID " _
+		& "ORDER BY CompanyName;")
+	
+	' Populate the Recordset.
+	rst.MoveLast
+	
+	
+This example deletes all records for employees whose title is Trainee. When the FROM clause includes only one table, you don't have to list the table name in the DELETE statement.
+
+Sub DeleteX()
+
+	Dim dbs As Database, rst As Recordset
+
+	' Modify this line to include the path to Northwind
+	' on your computer.
+	Set dbs = OpenDatabase("Northwind.mdb")
+
+	' Delete employee records where title is Trainee.	
+	dbs.Execute "DELETE * FROM " _
+		& "Employees WHERE Title = 'Trainee';"
+	
+	dbs.Close
+
+End Sub
+
+This example selects the job titles assigned to more than one employee in the Washington region.
+This example calls the EnumFields procedure, which you can find in the SELECT statement example.
+
+Sub HavingX()
+
+	Dim dbs As Database, rst As Recordset
+
+	' Modify this line to include the path to Northwind
+	' on your computer.
+	Set dbs = OpenDatabase("Northwind.mdb")
+
+	' Select the job titles assigned to more than one 
+	' employee in the Washington region. 
+	Set rst = dbs.OpenRecordset("SELECT Title, " _
+		& "Count(Title) as Total FROM Employees " _
+		& "WHERE Region = 'WA' " _
+		& "GROUP BY Title HAVING Count(Title) > 1;")
+	
+	' Populate the Recordset.
+
+rst.MoveLast
+	
+	' Call EnumFields to print recordset contents.
+	EnumFields rst, 25
+
+	
+' Select records from the Orders table that
+	' have a ShipRegion value of Lancashire or Essex.
+	Set rst = dbs.OpenRecordset("SELECT " _
+		& "CustomerID, ShippedDate FROM Orders " _
+		& "WHERE ShipRegion In " _
+		& "('Lancashire','Essex');")
+	
+	
+' Create a join between the Order Details and 
+	' Orders tables and another between the Orders and 
+	' Employees tables. Get a list of employees and 
+	' their total sales.
+	Set rst = dbs.OpenRecordset("SELECT DISTINCTROW " _
+		& "Sum(UnitPrice * Quantity) AS Sales, " _
+		& "(FirstName & Chr(32) & LastName) AS Name " _
+
+& "FROM Employees INNER JOIN(Orders " _
+		& "INNER JOIN [Order Details] " _
+		& "ON [Order Details].OrderID = " _
+		& "Orders.OrderID ) " _
+		& "ON Orders.EmployeeID = " _
+		& "Employees.EmployeeID " _
+		& "GROUP BY (FirstName & Chr(32) & LastName);")
+	
+	' Populate the Recordset.
+	rst.MoveLast
+	
+	
+' the letters A through D.
+	Set rst = dbs.OpenRecordset("SELECT LastName," _
+		& " FirstName FROM Employees" _
+		& " WHERE LastName Like '[A-D]*';")
+
+	' Populate the Recordset.
+	rst.MoveLast
+
+	
+' orders shipped to the United Kingdom.
+	Set rst = dbs.OpenRecordset("SELECT " _ 
+		& "Min(Freight) AS [Low Freight], " _
+		& "Max(Freight)AS [High Freight] " _
+		& "FROM Orders WHERE ShipCountry = 'UK';")
+
+
+This example uses the SQL TRANSFORM clause to create a crosstab query showing the number of orders taken by each employee for each calendar quarter of 1994. The SQLTRANSFORMOutput function is required for this procedure to run.
+
+Sub TransformX1()
+
+	Dim dbs As Database
+	Dim strSQL As String
+	Dim qdfTRANSFORM As QueryDef
+
+	strSQL = "PARAMETERS prmYear SHORT; TRANSFORM " _
+		& "Count(OrderID) " _
+		& "SELECT FirstName & "" "" & LastName AS " _
+		& "FullName FROM Employees INNER JOIN Orders " _
+		& "ON Employees.EmployeeID = " _
+		& "Orders.EmployeeID WHERE DatePart " _
+		& "(""yyyy"", OrderDate) = [prmYear] "
+   
+   	strSQL = strSQL & "GROUP BY FirstName & " _
+		& """ "" & LastName " _
+
+& "ORDER BY FirstName & "" "" & LastName " _
+		& "PIVOT DatePart(""q"", OrderDate)"
+	
+	' Modify this line to include the path to Northwind
+	' on your computer.
+	Set dbs = OpenDatabase("Northwind.mdb")
+
+	Set qdfTRANSFORM = dbs.CreateQueryDef _
+		("", strSQL)
+	
+	SQLTRANSFORMOutput qdfTRANSFORM, 1994
+	
+	dbs.Close
+
+End Sub
+
+This example uses the SQL TRANSFORM clause to create a slightly more complex crosstab query showing the total dollar amount of orders taken by each employee for each calendar quarter of 1994. The SQLTRANSFORMOutput function is required for this procedure to run.
+
+Sub TransformX2()
+
+	Dim dbs As Database
+	Dim strSQL As String
+	Dim qdfTRANSFORM As QueryDef
+
+	strSQL = "PARAMETERS prmYear SHORT; TRANSFORM " _
+		& "Sum(Subtotal) SELECT FirstName & "" """ _
+		& "& LastName AS FullName " _
+		& "FROM Employees INNER JOIN " _
+		& "(Orders INNER JOIN [Order Subtotals] " _
+		& "ON Orders.OrderID = " _
+		& "[Order Subtotals].OrderID) " _
+		& "ON Employees.EmployeeID = " _
+		& "Orders.EmployeeID WHERE DatePart" _
+
+& "(""yyyy"", OrderDate) = [prmYear] "
+   
+   	strSQL = strSQL & "GROUP BY FirstName & "" """ _
+		& "& LastName " _
+		& "ORDER BY FirstName & "" "" & LastName " _
+		& "PIVOT DatePart(""q"",OrderDate)"		
+		
+	' Modify this line to include the path to Northwind
+	' on your computer.
+	Set dbs = OpenDatabase("Northwind.mdb")
+
+	Set qdfTRANSFORM = dbs.CreateQueryDef _
+		("", strSQL)
+	
+	SQLTRANSFORMOutput qdfTRANSFORM, 1994
+	
+	dbs.Close
+
+End Sub
+
+Function SQLTRANSFORMOutput(qdfTemp As QueryDef, _
+	intYear As Integer)
+	
+	Dim rstTRANSFORM As Recordset
+	Dim fldLoop As Field
+	Dim booFirst As Boolean
+
+	qdfTemp.PARAMETERS!prmYear = intYear
+	Set rstTRANSFORM = qdfTemp.OpenRecordset()
+	
+	Debug.Print qdfTemp.SQL
+	Debug.Print
+	Debug.Print , , "Quarter"
+
+	With rstTRANSFORM
+		booFirst = True
+		For Each fldLoop In .Fields
+			If booFirst = True Then
+				Debug.Print fldLoop.Name
+				Debug.Print , ;
+
+booFirst = False
+			Else
+				Debug.Print , fldLoop.Name;
+			End If
+		Next fldLoop
+		Debug.Print
+		
+		Do While Not .EOF
+			booFirst = True
+			For Each fldLoop In .Fields
+				If booFirst = True Then
+					Debug.Print fldLoop
+					Debug.Print , ;
+					booFirst = False
+				Else
+					Debug.Print , fldLoop;
+				End If
+			Next fldLoop
+			Debug.Print
+			.MoveNext
+		Loop
+	End With
+	
+End Function
+
+
+' Calculate the total sales for orders shipped to
+	' the United Kingdom.  
+	Set rst = dbs.OpenRecordset("SELECT" _
+		& " Sum(UnitPrice*Quantity)" _
+		& " AS [Total UK Sales] FROM Orders" _
+		& " INNER JOIN [Order Details] ON" _
+		& " Orders.OrderID = [Order Details].OrderID" _
+
+& " WHERE (ShipCountry = 'UK');")
+
+	
+' Calculate the variance of freight costs for 
+	' orders shipped to the United Kingdom. 
+	Set rst = dbs.OpenRecordset("SELECT " _
+		& "Var(Freight) " _
+		& "AS [UK Freight Variance] " _
+		& "FROM Orders WHERE ShipCountry = 'UK';")
+
+
+' Retrieve the names and cities of all suppliers 
+	' and customers in Brazil.
+	Set rst = dbs.OpenRecordset("SELECT CompanyName," _
+		& " City FROM Suppliers" _
+		& " WHERE Country = 'Brazil' UNION" _
+		& " SELECT CompanyName, City FROM Customers" _
+		& " WHERE Country = 'Brazil';")
+
+
+
+' Select the last name and first name values from 
+	' the Employees table, and sort them in descending 
+	' order.
+	Set rst = dbs.OpenRecordset("SELECT LastName, " _
+		& "FirstName FROM Employees " _
+		& "ORDER BY LastName DESC;")
+	
+	
+' Select all records in the New Customers table 
+	' and add them to the Customers table.
+	dbs.Execute " INSERT INTO Customers " _
+		& "SELECT * " _
+		& "FROM [New Customers];"
+		
+	dbs.Close
+
+
+	
