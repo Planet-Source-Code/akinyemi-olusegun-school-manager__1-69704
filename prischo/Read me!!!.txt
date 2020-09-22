@@ -1,0 +1,10 @@
+School manager
+-------------------
+
+admin
+------
+
+Username: Oladele Rebecca
+password: lola
+
+
